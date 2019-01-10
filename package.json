@@ -1,0 +1,22 @@
+{
+  "name": "keke_sdk",
+  "version": "1.0.0",
+  "description": "keke画布sdk",
+  "main": "startup.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SteveWooo/keke_sdk.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SteveWooo/keke_sdk/issues"
+  },
+  "homepage": "https://github.com/SteveWooo/keke_sdk#readme",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}
