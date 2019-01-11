@@ -11,6 +11,18 @@
 		var sdk = new Keke_sdk({
 			canvas_id : "canvas",
 		});
+
+		var item = sdk.create_item({
+			type : "text",
+			content : "hello world",
+			x : 20,
+			y : 20,
+			filt_style : "#e1e"
+		})
+
+		sdk.add_item(item);
+
+		sdk.render();
 	</script>
 </body>
 </html>
