@@ -6,23 +6,47 @@
 </head>
 <body>
 	<canvas id="canvas"></canvas>
+	<script type="text/javascript" src="./jquery.min.js"></script>
 	<script type="text/javascript" src="./sdk.js"></script>
 	<script type="text/javascript">
-		var sdk = new Keke_sdk({
+		var keke = new Keke_sdk({
 			canvas_id : "canvas",
+			config : {
+				base_url : "https://ss.keke.city",
+				base_res_url : "https://ss.keke.city/res/emotions"
+			}
 		});
 
-		var item = sdk.create_item({
+		var obj = keke.create_item({
 			type : "text",
 			content : "hello world",
-			x : 20,
-			y : 20,
+			x : 100,
+			y : 100,
 			filt_style : "#e1e"
 		})
+		keke.render();
 
-		sdk.add_item(item);
+		function load_img(num){
+			$.ajax({
+				url : keke.config.base_url + "/api/p/origin_sticker/get?&category=84b8a7395acbb2a1ee07fd7eea4dab0a",
+				success : function(res){
+					res = JSON.parse(res);
+					var data = res.data.rows[0];
+					obj = keke.create_item({
+						type : "img",
+						origin_sticker_id : data.origin_sticker_id,
+						file_path : data.path,
+						x : num * 10,
+						y : num * 10
+					})
+					keke.render();
+				}
+			})
+		}
 
-		sdk.render();
+		for(var i=0;i<10;i++){
+			load_img(i);
+		}
 	</script>
 </body>
 </html>
