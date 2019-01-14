@@ -12,7 +12,8 @@
 		var keke = new Keke_sdk({
 			canvas_id : "canvas",
 			config : {
-				base_url : "https://ss.keke.city",
+				// base_url : "https://ss.keke.city",
+				base_url : "http://localhost:81",
 				base_res_url : "https://ss.keke.city/res/emotions"
 			}
 		});
@@ -27,20 +28,13 @@
 		keke.render();
 
 		function load_img(num){
-			$.ajax({
-				url : keke.config.base_url + "/api/p/origin_sticker/get?&category=84b8a7395acbb2a1ee07fd7eea4dab0a",
-				success : function(res){
-					res = JSON.parse(res);
-					var data = res.data.rows[0];
-					obj = keke.create_item({
-						type : "img",
-						origin_sticker_id : data.origin_sticker_id,
-						file_path : data.path,
-						x : num * 10,
-						y : num * 10
-					})
-					keke.render();
-				}
+			keke.create_item({
+				type : "img",
+				origin_sticker_id : "44d5938074b728ee32c770424920e84c",
+				x : num * 10,
+				y : num * 10
+			}, function(res){
+				keke.render();
 			})
 		}
 
