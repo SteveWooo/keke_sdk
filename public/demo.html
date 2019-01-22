@@ -13,34 +13,44 @@
 			canvas_id : "canvas",
 			config : {
 				// base_url : "https://ss.keke.city",
-				base_url : "http://localhost:81",
-				base_res_url : "https://ss.keke.city/res/emotions"
+				base_url : "http://localhost",
+				base_res_url : "http://localhost/res/emotions"
 			}
 		});
 
-		var obj = keke.create_item({
-			type : "text",
-			content : "hello world",
-			x : 100,
-			y : 100,
-			filt_style : "#e1e"
+		// var obj = keke.create_item({
+		// 	type : "text",
+		// 	content : "hello world",
+		// 	x : 100,
+		// 	y : 100,
+		// 	filt_style : "#e1e"
+		// })
+		// keke.render();
+
+		// function load_img(num){
+		// 	keke.create_item({
+		// 		type : "img",
+		// 		origin_sticker_id : "44d5938074b728ee32c770424920e84c",
+		// 		x : num * 10,
+		// 		y : num * 10
+		// 	}, function(res){
+		// 		keke.render();
+		// 	})
+		// }
+
+		// for(var i=0;i<10;i++){
+		// 	load_img(i);
+		// }
+		var content = "$$keke_sticker$$d4eb918604592238f0eb510f067f8411$$/keke_sticker$$,$$keke_sticker$$d4eb918604592238f0eb510f067f8411$$/keke_sticker$$,$$keke_sticker$$d4eb918604592238f0eb510f067f8411$$/keke_sticker$$";
+
+		keke.admin_content_render({
+			content : content
+		}, function(res){
+			content = res.content;
+			var dom = document.createElement("div");
+			dom.innerHTML = content;
+			document.body.appendChild(dom);
 		})
-		keke.render();
-
-		function load_img(num){
-			keke.create_item({
-				type : "img",
-				origin_sticker_id : "44d5938074b728ee32c770424920e84c",
-				x : num * 10,
-				y : num * 10
-			}, function(res){
-				keke.render();
-			})
-		}
-
-		for(var i=0;i<10;i++){
-			load_img(i);
-		}
 	</script>
 </body>
 </html>

@@ -3,9 +3,15 @@ function Keke_sdk(_options) {
 	//变量参数(默认)
 	this.options = {
 		draw_items : [], //表情元素 相当于sprite
+		drawing_items : {
+			count : 0,
+			items : {}
+		}, //表情元素哈希表（新）
 		imgs : {}, //图片元素哈希表
 		canvas : {},
 		ctx : {}, //操作实例
+
+		operating_item_id : 1, //正在操作的item id， 默认第一个
 
 		canva_id : "",
 		canvas_width : 300,
@@ -31,7 +37,7 @@ function Keke_sdk(_options) {
 		text : function(_options, callback){
 			var item = {
 				id : 0,
-				type : _options.type,
+				type : _options.type || "text",
 				content : _options.content,
 				x : _options.x || 0,
 				y : _options.y || 0,
@@ -66,12 +72,20 @@ function Keke_sdk(_options) {
 				height : _options.height || undefined,
 				visible : true, //是否渲染
 			}
-
+			if(that.options.imgs[that.options.canvas_id + _options.origin_sticker_id] != undefined){
+				callback({
+					status : 2000,
+					draw_item : draw_item
+				});
+				return ;
+			}
 			//获取图片信息
 			$.ajax({
 				url : that.config.base_url + "/api/p/origin_sticker/get?origin_sticker_id=" + _options.origin_sticker_id,
 				success : function(res){
-					res = JSON.parse(res);
+					if(typeof res != "object"){
+						res = JSON.parse(res);
+					}
 					if(res.status != "2000"){
 						callback({
 							status : res.status,
@@ -88,13 +102,13 @@ function Keke_sdk(_options) {
 					}
 					draw_item.file_path = res.data[0].path;
 
-					if(!that.options.imgs[_options.origin_sticker_id]){
+					if(!that.options.imgs[that.options.canvas_id + _options.origin_sticker_id]){
 						var img_dom = document.createElement("img");
 						img_dom.src = that.config.base_res_url + draw_item.file_path;
 						img_dom.style = "display:none";
 						//load
 						document.body.appendChild(img_dom);
-						that.options.imgs[_options.origin_sticker_id] = img_dom;
+						that.options.imgs[that.options.canvas_id + _options.origin_sticker_id] = img_dom;
 
 						img_dom.onload = function(){
 							callback({
@@ -118,6 +132,8 @@ function Keke_sdk(_options) {
 	var add_item = function(_item){
 		_item.id = that.options.draw_items.length + 1;
 		that.options.draw_items.push(_item);
+		that.options.drawing_items.items[_item.id] = _item;
+		that.options.drawing_items.count ++;
 		return _item;
 	}
 
@@ -152,12 +168,18 @@ function Keke_sdk(_options) {
 		img : function(_item){
 			var ctx = that.options.ctx;
 			var canvas = that.options.canvas;
+			if(_item['width'] != parseFloat(_item['width'])){
+				_item['width'] = 0;
+			}
+			if(_item['height'] != parseFloat(_item['height'])){
+				_item['height'] = 0;
+			}
 			if(_item['width'] && _item['height'] && _item['width'] != 0 && _item['height'] != 0){
-				ctx.drawImage(that.options.imgs[_item.origin_sticker_id], _item.x, _item.y, 
+				ctx.drawImage(that.options.imgs[that.options.canvas_id + _item.origin_sticker_id], _item.x, _item.y, 
 					_item.width , _item.height);
 				return ;
 			}
-			ctx.drawImage(that.options.imgs[_item.origin_sticker_id], _item.x, _item.y);
+			ctx.drawImage(that.options.imgs[that.options.canvas_id + _item.origin_sticker_id], _item.x, _item.y);
 		}
 	}
 
@@ -180,6 +202,29 @@ function Keke_sdk(_options) {
 		//底色
 		that.options.ctx.fillStyle = that.options.canvas_background_style;
 		that.options.ctx.fillRect(0, 0, that.options.canvas.width, that.options.canvas.height);
+
+		if(_options && _options.draw_list == "drawing_items"){
+			var items = that.options.drawing_items.items;
+			for(var i in items){
+				if(!items[i].visible){
+					continue;
+				}
+				//找到渲染器
+				if(!(items[i].type in renders)){
+					console.warn("渲染类型错误：" + items[i]);
+					continue ;
+				}
+
+				//保存渲染状态
+				that.options.ctx.save();
+				//进入渲染器
+				renders[items[i].type](items[i]);
+				//恢复渲染状态
+				that.options.ctx.restore();
+			}
+
+			return ;
+		}
 
 		var items = that.options.draw_items;
 		for(var i=0;i<items.length;i++){
@@ -210,6 +255,10 @@ function Keke_sdk(_options) {
 
 	this.get_items = function(){
 		return that.options.draw_items;
+	}
+
+	this.get_base64 = function(){
+		return this.options.canvas.toDataURL();
 	}
 
 	/*
@@ -280,6 +329,193 @@ function Keke_sdk(_options) {
 		that.set_canvas_width(_info.canvas_width || that.options.canvas.width);
 		//递归顺序增加
 		add_info_item(_info, 0, callback);
+	}
+
+	/*
+	* 把default info设置进去
+	*/
+	this.set_default_info = function(_default_info, callback, _options){
+		//默认取0
+		var info = _default_info.infos[0];
+		//初始化
+		that.options.draw_items = [];
+		that.options.origin_sticker_id = _options.origin_sticker.origin_sticker_id;
+		//设置原始默认属性
+		that.set_canvas_height(info.canvas_height || that.options.canvas.height);
+		that.set_canvas_width(info.canvas_width || that.options.canvas.width);
+		//添加item到渲染列表里面去
+		add_info_item(info, 0, callback);
+	}
+
+	/*
+	* 把需要渲染的info设置进去
+	*/
+	this.set_content_info = function(_info, callback, _options){
+		that.options.draw_items = [];
+		that.options.origin_sticker_id = _options.sticker.origin_sticker_id;
+		//设置原始默认属性
+		that.set_canvas_height(_info.canvas_height || that.options.canvas.height);
+		that.set_canvas_width(_info.canvas_width || that.options.canvas.width);
+
+		//先处理一下items
+		var items = _info.items;
+		var temp = [];
+		for(var i in _info.items){
+			temp.push(_info.items[i]);
+		}
+		_info.items = temp;
+
+		//添加item到渲染列表里面去
+		add_info_item(_info, 0, callback);
+	}
+
+	/*
+	* 修改正在编辑的item id
+	*/
+	this.set_operating_item_id = function(item){
+		that.options.operating_item_id = item.id;
+	}
+
+	/*
+	* 添加新的元素到渲染列表
+	*/
+	this.add_drawing_item = function(options, callback){
+		if(options.type == "text"){
+			var info = {
+				items : [{
+					type : "text",
+					content : "请输入文本"
+				}]
+			}
+
+			add_info_item(info, 0, callback);
+		}
+	}
+
+	/*
+	* 获取需要提交的drawing_item
+	*/
+	this.get_drawing_result = function(){
+		return that.options;
+	}
+
+	/*
+	* 管理后台评论页面渲染,把content从options里面传进来
+	*/
+	var CONTENT_TAG_LIST = {
+		"keke_sticker" : true
+	}
+	/*
+	* 递归创建图片，存进options.result中。其中options.num为游标
+	*/
+	function create_sticker_img(sticker_ids, options, callback){
+		if(options.num == sticker_ids.length){
+			callback(options.result);
+			return ;
+		}
+
+		$.ajax({
+			url : that.config.base_url + "/api/p/sticker/get?sticker_id=" + sticker_ids[options.num],
+			success : function(res){
+				if(typeof res != 'object'){
+					res = JSON.parse(res);
+				}
+				if(res.status != "2000"){
+					alert(res.error_message);
+					return ;
+				}
+				if(res.data.length == 0){
+					alert("表情不存在");
+					return ;
+				}
+
+				var sticker = res.data[0];
+				sticker.info = JSON.parse(sticker.info);
+
+				var dom = document.createElement("canvas");
+				dom.id = "keke_sdk_temp_" + sticker.sticker_id;
+				dom.style = "display:none";
+				// dom.style = "border:1px solid #111"
+				document.body.appendChild(dom);
+
+				var temp_sdk = new Keke_sdk({
+					canvas_id : "keke_sdk_temp_" + sticker.sticker_id,
+					config : that.config
+				})
+
+
+				temp_sdk.set_content_info(sticker.info, function(result){
+					temp_sdk.render({
+						draw_list : "drawing_items"
+					});
+
+					var base_64 = temp_sdk.get_base64();
+					var image = {
+						base_64 : base_64,
+						sticker : sticker
+					}
+					options.result.images.push(image);
+					options.num ++;
+
+					create_sticker_img(sticker_ids, options, callback);
+				}, {
+					sticker : sticker
+				})
+			},
+			error : function(){
+				alert("网络错误");
+			}
+		})
+	}
+	this.admin_content_render = function(options, callback){
+		var content = options.content;
+		//没有则不需要渲染
+		if(content.indexOf("$$keke_sticker$$") < 0){
+			callback({
+				content : content
+			})
+			return ;
+		}
+		/*
+		* 1：获取所有sticker_id
+		* 2：递归取sticker
+		* 3：把sticker渲染成base64
+		* 4：回调images结果，把images分别替换成html内容渲染进去
+		*/
+
+		var temp_content = content.split("$$keke_sticker$$");
+		var sticker_ids = [];
+		for(var i=0;i<temp_content.length;i++){
+			if(temp_content[i].indexOf("$$/keke_sticker$$") < 0){
+				continue;
+			}
+			sticker_ids.push(temp_content[i].substring(0, temp_content[i].indexOf("$$/keke_sticker$$")));
+		}
+
+		create_sticker_img(sticker_ids, {
+			result : {
+				images : [], //存放图片base64
+			},
+			num : 0, //游标
+		}, function(result){
+			//替换原文的标签内容
+			var result_num = 0;
+			for(var i=0;i<temp_content.length;i++){
+				if(temp_content[i].indexOf("$$/keke_sticker$$") < 0){
+					continue;
+				}
+
+				var img_html = "<br /><img src='"+
+					result.images[result_num].base_64 +"' width='" + 
+					result.images[result_num].sticker.info.canvas_width + "' height='"+
+					result.images[result_num].sticker.info.canvas_height+"'/>";
+				temp_content[i] = temp_content[i].replace(result.images[result_num].sticker.sticker_id + "$$/keke_sticker$$", img_html);
+			}
+
+			callback({
+				content : temp_content.join("")
+			})
+		})
 	}
 
 	//逻辑区域
