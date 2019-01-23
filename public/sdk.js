@@ -505,7 +505,7 @@ function Keke_sdk(_options) {
 					continue;
 				}
 
-				var img_html = "<br /><img src='"+
+				var img_html = "<img src='"+
 					result.images[result_num].base_64 +"' width='" + 
 					result.images[result_num].sticker.info.canvas_width + "' height='"+
 					result.images[result_num].sticker.info.canvas_height+"'/>";
