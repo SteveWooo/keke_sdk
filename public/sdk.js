@@ -510,6 +510,7 @@ function Keke_sdk(_options) {
 					result.images[result_num].sticker.info.canvas_width + "' height='"+
 					result.images[result_num].sticker.info.canvas_height+"'/>";
 				temp_content[i] = temp_content[i].replace(result.images[result_num].sticker.sticker_id + "$$/keke_sticker$$", img_html);
+				result_num ++ ;
 			}
 
 			callback({
