@@ -72,7 +72,7 @@ function Keke_sdk(_options) {
 				height : _options.height || undefined,
 				visible : true, //是否渲染
 			}
-			if(that.options.imgs[that.options.canvas_id + _options.origin_sticker_id] != undefined){
+			if(Keke_sdk.prototype.get_cache_origin_sticker(_options.origin_sticker_id) != undefined){
 				callback({
 					status : 2000,
 					draw_item : draw_item
@@ -102,13 +102,15 @@ function Keke_sdk(_options) {
 					}
 					draw_item.file_path = res.data[0].path;
 
-					if(!that.options.imgs[that.options.canvas_id + _options.origin_sticker_id]){
+					if(!Keke_sdk.prototype.get_cache_origin_sticker(res.data[0].origin_sticker_id)){
 						var img_dom = document.createElement("img");
 						img_dom.src = that.config.base_res_url + draw_item.file_path;
 						img_dom.style = "display:none";
 						//load
 						document.body.appendChild(img_dom);
 						that.options.imgs[that.options.canvas_id + _options.origin_sticker_id] = img_dom;
+						//设置全局缓存
+						Keke_sdk.prototype.set_cache_origin_sticker(res.data[0], img_dom);
 
 						img_dom.onload = function(){
 							callback({
@@ -175,11 +177,11 @@ function Keke_sdk(_options) {
 				_item['height'] = 0;
 			}
 			if(_item['width'] && _item['height'] && _item['width'] != 0 && _item['height'] != 0){
-				ctx.drawImage(that.options.imgs[that.options.canvas_id + _item.origin_sticker_id], _item.x, _item.y, 
+				ctx.drawImage(Keke_sdk.prototype.get_cache_origin_sticker(_item.origin_sticker_id).dom, _item.x, _item.y, 
 					_item.width , _item.height);
 				return ;
 			}
-			ctx.drawImage(that.options.imgs[that.options.canvas_id + _item.origin_sticker_id], _item.x, _item.y);
+			ctx.drawImage(Keke_sdk.prototype.get_cache_origin_sticker(_item.origin_sticker_id).dom, _item.x, _item.y);
 		}
 	}
 
@@ -406,67 +408,131 @@ function Keke_sdk(_options) {
 		"keke_sticker" : true
 	}
 	/*
-	* 递归创建图片，存进options.result中。其中options.num为游标
+	* 获取所有sticker
 	*/
-	function create_sticker_img(sticker_ids, options, callback){
-		if(options.num == sticker_ids.length){
-			callback(options.result);
-			return ;
-		}
-
+	function fetch_stickers(sticker_ids, callback){
 		$.ajax({
-			url : that.config.base_url + "/api/p/sticker/get?sticker_id=" + sticker_ids[options.num],
+			url : that.config.base_url + "/api/p/sticker/gets",
+			type : "post",
+			headers : {
+				"Content-Type" : "Application/json"
+			},
+			data : JSON.stringify({
+				sticker_ids : sticker_ids.join(",")
+			}),
 			success : function(res){
-				if(typeof res != 'object'){
+				if(typeof res != "object"){
 					res = JSON.parse(res);
 				}
+
 				if(res.status != "2000"){
 					alert(res.error_message);
 					return ;
 				}
-				if(res.data.length == 0){
-					alert("表情不存在");
-					return ;
-				}
 
-				var sticker = res.data[0];
-				sticker.info = JSON.parse(sticker.info);
-
-				var dom = document.createElement("canvas");
-				dom.id = "keke_sdk_temp_" + sticker.sticker_id;
-				dom.style = "display:none";
-				// dom.style = "border:1px solid #111"
-				document.body.appendChild(dom);
-
-				var temp_sdk = new Keke_sdk({
-					canvas_id : "keke_sdk_temp_" + sticker.sticker_id,
-					config : that.config
-				})
-
-
-				temp_sdk.set_content_info(sticker.info, function(result){
-					temp_sdk.render({
-						draw_list : "drawing_items"
-					});
-
-					var base_64 = temp_sdk.get_base64();
-					var image = {
-						base_64 : base_64,
-						sticker : sticker
-					}
-					options.result.images.push(image);
-					options.num ++;
-
-					create_sticker_img(sticker_ids, options, callback);
-				}, {
-					sticker : sticker
-				})
+				callback(res.data);
 			},
 			error : function(){
 				alert("网络错误");
 			}
 		})
 	}
+
+	/*
+	* options = {stickers, comments}
+	*/
+	function decode_sticker_to_base64(options, callback){
+		if(options.num == options.stickers.length){
+			set_base64_to_comments_content(options, callback);
+			return ;
+		}
+
+		options.stickers[options.num].info = JSON.parse(options.stickers[options.num].info);
+		var dom = document.createElement("canvas");
+		dom.id = "keke_sdk_temp_" + options.stickers[options.num].sticker_id;
+		dom.style = "display:none";
+		// dom.style = "border:1px solid #111;margin-bottom:100px";
+		document.body.appendChild(dom);
+
+		var temp_sdk = new Keke_sdk({
+			canvas_id : "keke_sdk_temp_" + options.stickers[options.num].sticker_id,
+			config : that.config
+		})
+
+		temp_sdk.set_content_info(options.stickers[options.num].info, function(result){
+			temp_sdk.render({
+				draw_list : "drawing_items"
+			});
+
+			//转换base64
+			var base_64 = temp_sdk.get_base64();
+			options.stickers[options.num].base_64 = base_64;
+			//更替到hash表里面
+			options.stickers_hash[options.stickers[options.num].sticker_id] = options.stickers[options.num];
+			options.num ++;
+			decode_sticker_to_base64(options, callback);
+		}, {
+			sticker : options.stickers[options.num]
+		})
+	}
+
+	/*
+	* options : {stickers, comments}, callback返回渲染内容后的comments
+	*/
+	function set_base64_to_comments_content(options, callback){
+		for(var i=0;i<options.comments.length;i++){
+			var content = options.comments[i].content;
+			//处理换行
+			content = content.replace(/\n/g, "<br>");
+			var temp_content = content.split("$$keke_sticker$$");
+			for(var k=0;k<temp_content.length;k++){
+				if(temp_content[k].indexOf("$$/keke_sticker$$") < 0){
+					continue;
+				}
+
+				var sticker_id = temp_content[k].substring(0, temp_content[k].indexOf("$$/keke_sticker$$"));
+
+				//图片标签
+				var img_html = "<img src='"+
+					options.stickers_hash[sticker_id].base_64 +"' width='" + 
+					options.stickers_hash[sticker_id].info.canvas_width + "' height='"+
+					options.stickers_hash[sticker_id].info.canvas_height+"'/>";
+				temp_content[k] = temp_content[k].replace(sticker_id + "$$/keke_sticker$$", img_html);
+			}
+			options.comments[i].content = temp_content.join("");
+		}
+
+		callback(options);
+	}
+
+	this.admin_content_render_all = function(options, callback){
+		var comments = options.comments;
+		var sticker_ids = [];
+
+		//抽取sticker id
+		for(var i=0;i<comments.length;i++){
+			var content = comments[i].content;
+			var temp_content = content.split("$$keke_sticker$$");
+			for(var k=0;k<temp_content.length;k++){
+				if(temp_content[k].indexOf("$$/keke_sticker$$") < 0){
+					continue;
+				}
+				sticker_ids.push(temp_content[k].substring(0, temp_content[k].indexOf("$$/keke_sticker$$")));
+			}
+		}
+
+		//获取所有sticker_id的信息
+		fetch_stickers(sticker_ids, function(stickers){
+			//制作base 64
+			decode_sticker_to_base64({
+				stickers : stickers,
+				stickers_hash : {},
+				comments : comments,
+				num : 0,
+			}, callback);
+		})
+	}
+
 	this.admin_content_render = function(options, callback){
 		var content = options.content;
 		//没有则不需要渲染
@@ -483,6 +549,10 @@ function Keke_sdk(_options) {
 		* 4：回调images结果，把images分别替换成html内容渲染进去
 		*/
 
+		//换行处理
+		content = content.replace(/\n/g, "<br>");
+
+		//抽取sticker id
 		var temp_content = content.split("$$keke_sticker$$");
 		var sticker_ids = [];
 		for(var i=0;i<temp_content.length;i++){
@@ -492,30 +562,9 @@ function Keke_sdk(_options) {
 			sticker_ids.push(temp_content[i].substring(0, temp_content[i].indexOf("$$/keke_sticker$$")));
 		}
 
-		create_sticker_img(sticker_ids, {
-			result : {
-				images : [], //存放图片base64
-			},
-			num : 0, //游标
-		}, function(result){
-			//替换原文的标签内容
-			var result_num = 0;
-			for(var i=0;i<temp_content.length;i++){
-				if(temp_content[i].indexOf("$$/keke_sticker$$") < 0){
-					continue;
-				}
-
-				var img_html = "<img src='"+
-					result.images[result_num].base_64 +"' width='" + 
-					result.images[result_num].sticker.info.canvas_width + "' height='"+
-					result.images[result_num].sticker.info.canvas_height+"'/>";
-				temp_content[i] = temp_content[i].replace(result.images[result_num].sticker.sticker_id + "$$/keke_sticker$$", img_html);
-				result_num ++ ;
-			}
-
-			callback({
-				content : temp_content.join("")
-			})
+		//获取所有sticker的内容
+		fetch_stickers(sticker_ids, function(result){
+			console.log(result);
 		})
 	}
 
@@ -541,12 +590,6 @@ function Keke_sdk(_options) {
 		var ctx = canvas.getContext("2d");
 		that.options.ctx = ctx;
 		that.options.canvas = canvas;
-
-		// ctx.fillRect(0, 0, canvas.width, canvas.height);
-		// ctx.fillStyle = "#e1e";
-		// ctx.font = "48px serif";
-		// var text = ctx.measureText("hello world");
-		// ctx.fillText("hello world", 10, 50, text.width);
 	}
 	/*
 	* 实例初始化
@@ -561,4 +604,19 @@ function Keke_sdk(_options) {
 	init();
 
 	return this;
+}
+
+Keke_sdk.prototype.cache = {
+	origin_sticker : {}
+}
+
+Keke_sdk.prototype.set_cache_origin_sticker = function(origin_sticker, dom){
+	Keke_sdk.prototype.cache.origin_sticker[origin_sticker.origin_sticker_id] = {
+		dom : dom,
+		origin_sticker : origin_sticker
+	};
+}
+
+Keke_sdk.prototype.get_cache_origin_sticker = function(origin_sticker_id){
+	return Keke_sdk.prototype.cache.origin_sticker[origin_sticker_id];
 }
