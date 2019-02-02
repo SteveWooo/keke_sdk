@@ -524,6 +524,7 @@ function Keke_sdk(_options) {
 				sticker_ids.push(temp_content[k].substring(0, temp_content[k].indexOf("$$/keke_sticker$$")));
 			}
 		}
+
 		//获取所有sticker_id的信息
 		fetch_stickers(sticker_ids, function(stickers){
 			//制作base 64
