@@ -1,0 +1,16 @@
+{
+	"infos": [{
+		"canvas_width": 440,
+		"canvas_height": 399,
+		"name": "default",
+		"items": [{
+			"visible": true,
+			"width": 440,
+			"height": 399,
+			"type": "img",
+			"x": 0,
+			"y": 0,
+			"origin_sticker_id": "50b1efae5aa19d68f31a9481419fa815"
+		}]
+	}]
+}

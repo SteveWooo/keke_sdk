@@ -10,47 +10,12 @@
 	<script type="text/javascript" src="./sdk.js"></script>
 	<script type="text/javascript">
 		var keke = new Keke_sdk({
-			canvas_id : "canvas",
+			canvasId : "canvas",
 			config : {
-				// base_url : "https://ss.keke.city",
-				base_url : "http://localhost",
-				base_res_url : "http://localhost/res/emotions"
+				baseUrl : "http://localhost",
+				baseUrl : "http://localhost/res/emotions"
 			}
 		});
-
-		// var obj = keke.create_item({
-		// 	type : "text",
-		// 	content : "hello world",
-		// 	x : 100,
-		// 	y : 100,
-		// 	filt_style : "#e1e"
-		// })
-		// keke.render();
-
-		// function load_img(num){
-		// 	keke.create_item({
-		// 		type : "img",
-		// 		origin_sticker_id : "44d5938074b728ee32c770424920e84c",
-		// 		x : num * 10,
-		// 		y : num * 10
-		// 	}, function(res){
-		// 		keke.render();
-		// 	})
-		// }
-
-		// for(var i=0;i<10;i++){
-		// 	load_img(i);
-		// }
-		var content = "$$keke_sticker$$5bf6a1562044a443716ae0d10110e6f6$$/keke_sticker$$$$keke_sticker$$03bde063e7b53f01d07d07f832a60672$$/keke_sticker$$";
-
-		keke.admin_content_render({
-			content : content
-		}, function(res){
-			content = res.content;
-			var dom = document.createElement("div");
-			dom.innerHTML = content;
-			document.body.appendChild(dom);
-		})
 	</script>
 </body>
 </html>
