@@ -10,65 +10,85 @@ function KekeSdk(opts) {
 			length : 0
 		}, //画布元素
 	}
-	this.config = {}
-
-	//通用方法
-	var _common = {
+	this.config = {};
+	//通用对象
+	var _module = {
 		/**
-		* 创建itemId
-		* @param item属性
-		* @return itemId
+		* 画布元素对象
 		*/
-		createItemId : function(options){
+		Item : {
+			/**
+			* 创建itemId
+			* @param item属性
+			* @return itemId
+			*/
+			createItemId : function(options){
 
+			},
+			/**
+			* 渲染具体item
+			* 递归函数
+			* @param options.items
+			* @param options.itemNumber //当前渲染的item
+			*/
+			renderItem : function(options, callback){
+
+			},
+
+			/**
+			* 渲染items列表到画布上
+			*/
+			render : function(){
+
+			}
 		},
 
-		/**
-		* 缓存图片，原则上每次渲染前都要先把图片缓存一次，用的之后直接通过id去用就行了
-		* @callback result.status result.error_message
-		*/
-		saveImage : function(options, callback){
+		Image : {
+			/**
+			* 缓存图片，原则上每次渲染前都要先把图片缓存一次，之后直接通过id去用就行了
+			* @param options.imageId
+			* @callback result.status result.errorMessage
+			*/
+			saveImage : function(options, callback){
 
+			},
 		},
 
-		/**
-		* 渲染items列表到画布上
-		*/
-		render : function(){
-
+		Alert : {
+			/**
+			* 报错
+			* @param options.errorMessage
+			*/
+			errorAlert : function(options){
+				alert(options.errorMessage);
+			}
 		},
 
-		/**
-		* 初始化画布
-		*/
-		initCanvas : function(){
-			//默认配置
-			if(opts.config){
-				for(var i in opts.config){
-					that.config[i] = opts.config[i];
+		Canvas : {
+			/**
+			* 初始化画布
+			*/
+			initCanvas : function(){
+				//默认配置
+				if(opts.config){
+					for(var i in opts.config){
+						that.config[i] = opts.config[i];
+					}
 				}
-			}
-			//画布
-			that.options.canvasId = opts.canvasId;
-			that.options.canvas = document.getElementById(that.options.canvasId);
-			if(!opts.canvasId || !that.options.canvas){
-				_common.errorAlert({
-					errorMessage : '参数错误：canvasId无效'
-				})
-			}
-			that.options.ctx = that.options.canvas.getContext('2d');
+				//画布
+				that.options.canvasId = opts.canvasId;
+				that.options.canvas = document.getElementById(that.options.canvasId);
+				if(!opts.canvasId || !that.options.canvas){
+					_common.errorAlert({
+						errorMessage : '参数错误：canvasId无效'
+					})
+				}
+				that.options.ctx = that.options.canvas.getContext('2d');
 
-			//清空items
-			that.options.items.list = [];
-			that.options.item.length = 0;
-		},
-
-		/**
-		* 报错
-		* @param options.errorMessage
-		*/
-		errorAlert : function(options){
-			alert(options.errorMessage);
+				//清空items
+				that.options.items.list = [];
+				that.options.item.length = 0;
+			}
 		}
 	}
 
@@ -81,7 +101,7 @@ function KekeSdk(opts) {
 	}
 
 	/*
-	* 更新item
+	* 更新item,此处渲染
 	* @param items 所有item
 	* @return 更新后的items
 	*/
@@ -112,6 +132,15 @@ function KekeSdk(opts) {
 	* @return items
 	*/
 	this.setDefaultInfo = function(options){
+
+	}
+
+	/**
+	* 设置info，表情图的info
+	* @param options.info:string 表情图的info
+	* @return items
+	*/
+	this.setInfo = function(options){
 
 	}
 
